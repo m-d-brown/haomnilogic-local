@@ -1,220 +1,144 @@
-"""OmniLogic Local Fixture Generator.
-
-This module provides a programmatic way to generate MSPConfig and Telemetry XML
-fixtures for testing the OmniLogic integration.
-"""
+"""OmniLogic fixture generator for testing."""
 
 from __future__ import annotations
 
-from typing import Any
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 
 
 class OmniLogicFixtureGenerator:
-    """Builder for OmniLogic XML fixtures."""
+    """Helper class to generate MSPConfig and Telemetry XMLs."""
 
     def __init__(self) -> None:
-        self.system_id_counter = 1
-        self.node_id_counter = 2050
-        self.backyard_id = 0
-        
-        self.msp_root = ET.Element("MSPConfig")
-        self.telemetry_root = ET.Element("STATUS", version="1.11")
-        
-        self.telemetry_backyard = None
-        self.telemetry_bows = {}
-        self.telemetry_filters = {}
-        self.telemetry_sensors = {}
-        
-        self._setup_defaults()
+        """Initialize the generator with root elements."""
+        self.msp_config = ET.Element("MSPConfig")
+        self.backyard = ET.SubElement(self.msp_config, "Backyard")
+        ET.SubElement(self.backyard, "System-Id").text = "0"
 
-    def _setup_defaults(self) -> None:
-        """Initialize base structure."""
-        # System section
-        sys = ET.SubElement(self.msp_root, "System")
-        ET.SubElement(sys, "Units").text = "Metric"
-        ET.SubElement(sys, "Msp-Vsp-Speed-Format").text = "Percent"
-        
-        # Backyard section
-        self.backyard = ET.SubElement(self.msp_root, "Backyard")
-        ET.SubElement(self.backyard, "System-Id").text = str(self.backyard_id)
-        ET.SubElement(self.backyard, "Name").text = "Backyard"
-        
-        # DMT section (Device Mapping Table)
-        self.dmt = ET.SubElement(self.msp_root, "DMT")
-        self.mp = ET.SubElement(self.dmt, "Device")
-        ET.SubElement(self.mp, "Device-Name").text = "MP"
-        ET.SubElement(self.mp, "Type").text = "MP"
-        ET.SubElement(self.mp, "Node-ID").text = "2048"
-        self.dmt_devices = ET.SubElement(self.mp, "Devices")
-        
-        # Telemetry Backyard
-        self.telemetry_backyard = ET.SubElement(
-            self.telemetry_root, 
-            "Backyard", 
-            systemId=str(self.backyard_id), 
-            airTemp="75", 
-            ConfigChksum="0"
-        )
+        self.telemetry = ET.Element("OmniLogic-Telemetry")
+        self.tele_backyard = ET.SubElement(self.telemetry, "Backyard")
+        ET.SubElement(self.tele_backyard, "System-Id").text = "0"
+        ET.SubElement(self.tele_backyard, "State").text = "1"
+
+        self._next_system_id = 1
 
     def _get_next_system_id(self) -> int:
-        sid = self.system_id_counter
-        self.system_id_counter += 1
+        sid = self._next_system_id
+        self._next_system_id += 1
         return sid
 
-    def _get_next_node_id(self) -> int:
-        nid = self.node_id_counter
-        self.node_id_counter += 1
-        return nid
+    def add_pool(self, system_id: int | None = None, name: str = "Pool", water_temp: int = 80) -> OmniLogicFixtureGenerator:
+        """Add a pool Body of Water."""
+        sid = system_id or self._get_next_system_id()
+        bow = ET.SubElement(self.backyard, "Body-of-Water")
+        ET.SubElement(bow, "System-Id").text = str(sid)
+        ET.SubElement(bow, "Name").text = name
+        ET.SubElement(bow, "Type").text = "BOW_POOL"
 
-    def add_air_sensor(self, name: str = "AirSensor", temp: int = 75) -> OmniLogicFixtureGenerator:
-        """Add an air temperature sensor to the backyard."""
-        sid = self._get_next_system_id()
-        nid = self._get_next_node_id()
-        
+        tele = ET.SubElement(self.telemetry, "BoW")
+        ET.SubElement(tele, "System-Id").text = str(sid)
+        ET.SubElement(tele, "Water_Temp").text = str(water_temp)
+
+        return self
+
+    def add_filter(
+        self,
+        bow_id: int,
+        system_id: int | None = None,
+        name: str = "Filter",
+        state: int = 1,
+        speed: int = 50,
+    ) -> OmniLogicFixtureGenerator:
+        """Add a filter pump."""
+        sid = system_id or self._get_next_system_id()
+        filter_pump = ET.SubElement(self.backyard, "Filter")
+        ET.SubElement(filter_pump, "System-Id").text = str(sid)
+        ET.SubElement(filter_pump, "Name").text = name
+        ET.SubElement(filter_pump, "Bow-Id").text = str(bow_id)
+        ET.SubElement(filter_pump, "Type").text = "FMT_VARIABLE_SPEED_PUMP"
+        ET.SubElement(filter_pump, "Max-RPM").text = "3450"
+        ET.SubElement(filter_pump, "Min-RPM").text = "600"
+        ET.SubElement(filter_pump, "Max-Percent").text = "100"
+        ET.SubElement(filter_pump, "Min-Percent").text = "20"
+
+        # Operations list is required by Pydantic model
+        ops = ET.SubElement(filter_pump, "Operations")
+        op = ET.SubElement(ops, "Operation")
+        ET.SubElement(op, "Id").text = "1"
+
+        tele = ET.SubElement(self.telemetry, "Filter")
+        ET.SubElement(tele, "System-Id").text = str(sid)
+        ET.SubElement(tele, "Filter-State").text = str(state)
+        ET.SubElement(tele, "Filter-Speed").text = str(speed)
+
+        return self
+
+    def add_light(
+        self,
+        bow_id: int,
+        system_id: int | None = None,
+        name: str = "Light",
+        state: int = 6,
+    ) -> OmniLogicFixtureGenerator:
+        """Add a ColorLogic light."""
+        sid = system_id or self._get_next_system_id()
+        light = ET.SubElement(self.backyard, "ColorLogic-Light")
+        ET.SubElement(light, "System-Id").text = str(sid)
+        ET.SubElement(light, "Name").text = name
+        ET.SubElement(light, "Bow-Id").text = str(bow_id)
+        ET.SubElement(light, "Type").text = "COLOR_LOGIC_UCL"
+        ET.SubElement(light, "V2-Active").text = "yes"
+
+        tele = ET.SubElement(self.telemetry, "ColorLogic-Light")
+        ET.SubElement(tele, "System-Id").text = str(sid)
+        ET.SubElement(tele, "State").text = str(state)
+        ET.SubElement(tele, "Brightness").text = "4"
+        ET.SubElement(tele, "Speed").text = "4"
+        ET.SubElement(tele, "Show").text = "0"
+
+        return self
+
+    def add_relay(
+        self,
+        system_id: int | None = None,
+        name: str = "Relay",
+        bow_id: int | None = None,
+        state: int = 1,
+    ) -> OmniLogicFixtureGenerator:
+        """Add a relay."""
+        sid = system_id or self._get_next_system_id()
+        relay = ET.SubElement(self.backyard, "Relay")
+        ET.SubElement(relay, "System-Id").text = str(sid)
+        ET.SubElement(relay, "Name").text = name
+        ET.SubElement(relay, "Type").text = "RLY_HIGH_VOLTAGE_RELAY"
+        ET.SubElement(relay, "Function").text = "RLY_WATER_FEATURE"
+        if bow_id:
+            ET.SubElement(relay, "Bow-Id").text = str(bow_id)
+
+        tele = ET.SubElement(self.telemetry, "Relay")
+        ET.SubElement(tele, "System-Id").text = str(sid)
+        ET.SubElement(tele, "Relay-State").text = str(state)
+
+        return self
+
+    def add_air_sensor(self, system_id: int | None = None, name: str = "Air Temp", temp: int = 75) -> OmniLogicFixtureGenerator:
+        """Add an air temperature sensor."""
+        sid = system_id or self._get_next_system_id()
         sensor = ET.SubElement(self.backyard, "Sensor")
         ET.SubElement(sensor, "System-Id").text = str(sid)
         ET.SubElement(sensor, "Name").text = name
         ET.SubElement(sensor, "Type").text = "SENSOR_AIR_TEMP"
         ET.SubElement(sensor, "Units").text = "UNITS_FAHRENHEIT"
-        
-        # Update telemetry
-        self.telemetry_backyard.set("airTemp", str(temp))
-        
+
+        tele = ET.SubElement(self.telemetry, "Sensor")
+        ET.SubElement(tele, "System-Id").text = str(sid)
+        ET.SubElement(tele, "Temp").text = str(temp)
+
         return self
 
-    def add_pool(self, name: str = "Pool", gallons: int = 15000, water_temp: int = 80) -> OmniLogicFixtureGenerator:
-        """Add a Body of Water (Pool)."""
-        sid = self._get_next_system_id()
-        
-        bow = ET.SubElement(self.backyard, "Body-of-water")
-        ET.SubElement(bow, "System-Id").text = str(sid)
-        ET.SubElement(bow, "Name").text = name
-        ET.SubElement(bow, "Type").text = "BOW_POOL"
-        ET.SubElement(bow, "Size-In-Gallons").text = str(gallons)
-        
-        # Telemetry
-        ET.SubElement(self.telemetry_root, "BodyOfWater", systemId=str(sid), waterTemp=str(water_temp), flow="1")
-        
-        # Store for future children (pumps, heaters, etc.)
-        self.current_bow_sid = sid
-        self.current_bow_el = bow
-        return self
+    def generate_msp_config(self) -> str:
+        """Return the generated MSPConfig XML."""
+        return ET.tostring(self.msp_config, encoding="unicode")
 
-    def add_filter_pump(self, name: str = "Filter Pump", speed: int = 50) -> OmniLogicFixtureGenerator:
-        """Add a variable speed filter pump to the current BOW."""
-        if not hasattr(self, "current_bow_sid"):
-             raise ValueError("Must add a Body of Water before adding equipment.")
-             
-        sid = self._get_next_system_id()
-        nid = self._get_next_node_id()
-        
-        flt = ET.SubElement(self.current_bow_el, "Filter")
-        ET.SubElement(flt, "System-Id").text = str(sid)
-        ET.SubElement(flt, "Name").text = name
-        ET.SubElement(flt, "Shared-Type").text = "BOW_NO_EQUIPMENT_SHARED"
-        ET.SubElement(flt, "Filter-Type").text = "FMT_VARIABLE_SPEED_PUMP"
-        ET.SubElement(flt, "Max-Pump-Speed").text = "100"
-        ET.SubElement(flt, "Min-Pump-Speed").text = "20"
-        ET.SubElement(flt, "Max-Pump-RPM").text = "3000"
-        ET.SubElement(flt, "Min-Pump-RPM").text = "600"
-        ET.SubElement(flt, "Priming-Enabled").text = "no"
-        ET.SubElement(flt, "Vsp-Low-Pump-Speed").text = "30"
-        ET.SubElement(flt, "Vsp-Medium-Pump-Speed").text = "50"
-        ET.SubElement(flt, "Vsp-High-Pump-Speed").text = "100"
-        
-        # Add to DMT
-        dev = ET.SubElement(self.dmt_devices, "Device")
-        ET.SubElement(dev, "System-Id").text = str(sid)
-        ET.SubElement(dev, "Node-Id").text = str(nid)
-        ET.SubElement(dev, "Omni-Type").text = "FILTER"
-        ET.SubElement(
-            self.telemetry_root, 
-            "Filter", 
-            systemId=str(sid), 
-            filterState="1" if speed > 0 else "0", 
-            filterSpeed=str(speed),
-            power="500" if speed > 0 else "0"
-        )
-        
-        return self
-
-    def add_chlorinator(self, name: str = "Chlorinator", timed_percent: int = 50) -> OmniLogicFixtureGenerator:
-        """Add a chlorinator to the current BOW."""
-        if not hasattr(self, "current_bow_sid"):
-             raise ValueError("Must add a Body of Water before adding equipment.")
-             
-        sid = self._get_next_system_id()
-        nid = self._get_next_node_id()
-        
-        chlor = ET.SubElement(self.current_bow_el, "Chlorinator")
-        ET.SubElement(chlor, "System-Id").text = str(sid)
-        ET.SubElement(chlor, "Name").text = name
-        ET.SubElement(chlor, "Enabled").text = "yes"
-        ET.SubElement(chlor, "Timed-Percent").text = str(timed_percent)
-        ET.SubElement(chlor, "SuperChlor-Timeout").text = "24"
-        ET.SubElement(chlor, "ORP-Timeout").text = "0"
-        ET.SubElement(chlor, "Dispenser-Type").text = "SALT"
-        ET.SubElement(chlor, "Cell-Type").text = "T-CELL-15"
-        
-        # Add to DMT
-        dev = ET.SubElement(self.dmt_devices, "Device")
-        ET.SubElement(dev, "System-Id").text = str(sid)
-        ET.SubElement(dev, "Node-Id").text = str(nid)
-        ET.SubElement(dev, "Omni-Type").text = "CHLORINATOR"
-        ET.SubElement(
-            self.telemetry_root, 
-            "Chlorinator", 
-            systemId=str(sid), 
-            status="72",
-            instantSaltLevel="3200",
-            avgSaltLevel="3200",
-            enable="1"
-        )
-        
-        return self
-
-    def add_heater(self, name: str = "Heater", current_temp: int = 80, set_point: int = 85) -> OmniLogicFixtureGenerator:
-        """Add a heater to the current BOW."""
-        if not hasattr(self, "current_bow_sid"):
-             raise ValueError("Must add a Body of Water before adding equipment.")
-             
-        sid = self._get_next_system_id()
-        
-        heater = ET.SubElement(self.current_bow_el, "Heater")
-        ET.SubElement(heater, "System-Id").text = str(sid)
-        ET.SubElement(heater, "Enabled").text = "yes"
-        ET.SubElement(heater, "Current-Set-Point").text = str(set_point)
-        
-        # Telemetry
-        ET.SubElement(
-            self.telemetry_root, 
-            "Heater", 
-            systemId=str(sid), 
-            heaterState="1",
-            temp=str(current_temp),
-            enable="1"
-        )
-        # Virtual heater is also needed for some logic
-        ET.SubElement(
-            self.telemetry_root,
-            "VirtualHeater",
-            systemId=str(sid+1), # Simulating a virtual heater ID
-            enable="1",
-            Current_Set_Point=str(set_point)
-        )
-        
-        return self
-
-    def dump_msp_config(self) -> str:
-        """Return pretty-printed MSPConfig XML."""
-        xml_str = ET.tostring(self.msp_root, encoding="utf-8")
-        reparsed = minidom.parseString(xml_str)
-        return reparsed.toprettyxml(indent="    ")
-
-    def dump_telemetry(self) -> str:
-        """Return pretty-printed Telemetry XML."""
-        xml_str = ET.tostring(self.telemetry_root, encoding="utf-8")
-        reparsed = minidom.parseString(xml_str)
-        return reparsed.toprettyxml(indent="    ")
+    def generate_telemetry(self) -> str:
+        """Return the generated Telemetry XML."""
+        return ET.tostring(self.telemetry, encoding="unicode")

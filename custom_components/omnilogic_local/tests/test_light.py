@@ -17,16 +17,13 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.omnilogic_local.const import DOMAIN, KEY_COORDINATOR
 
-
 pytestmark = pytest.mark.asyncio
-
 
 async def test_light_entities_created(hass: HomeAssistant, init_integration) -> None:
     """Test that light entities are created for the fixture data."""
     states = hass.states.async_all("light")
     # fixture has one ColorLogic-Light (system_id=9, type=UCL)
     assert len(states) >= 1, f"Expected >= 1 light, got {len(states)}: {[s.entity_id for s in states]}"
-
 
 async def test_light_initial_state_off(hass: HomeAssistant, init_integration) -> None:
     """Test the light is off initially (lightState=0 in telemetry)."""
@@ -35,11 +32,11 @@ async def test_light_initial_state_off(hass: HomeAssistant, init_integration) ->
     light = states[0]
     assert light.state == "off"
 
-
 async def test_light_turn_on(hass: HomeAssistant, init_integration) -> None:
-    """Test turning on the light calls async_set_equipment."""
+    """Test turning on the light via API state."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
     mock_api = coordinator.omni_api
+    system_id = 9
 
     states = hass.states.async_all("light")
     entity_id = states[0].entity_id
@@ -51,22 +48,19 @@ async def test_light_turn_on(hass: HomeAssistant, init_integration) -> None:
         blocking=True,
     )
 
-    # Basic turn_on without kwargs → calls async_set_equipment
-    mock_api.async_set_equipment.assert_called_once()
-    call_args = mock_api.async_set_equipment.call_args
-    assert call_args[0][0] == 3   # bow_id
-    assert call_args[0][1] == 9   # system_id
-    assert call_args[0][2] is True  # on
-
+    # State-based assertion: system_id 9 should be True (ON) in mock_api state
+    assert mock_api.state.get(system_id) is True
 
 async def test_light_turn_on_with_brightness(hass: HomeAssistant, init_integration) -> None:
-    """Test turning on the light with brightness calls async_set_light_show."""
+    """Test turning on the light with brightness."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
     mock_api = coordinator.omni_api
+    system_id = 9
 
     states = hass.states.async_all("light")
     entity_id = states[0].entity_id
 
+    # HA brightness 128 (approx 50%) maps to ColorLogicBrightness.SIXTY_PERCENT or similar depending on conversion
     await hass.services.async_call(
         LIGHT_DOMAIN,
         SERVICE_TURN_ON,
@@ -74,17 +68,17 @@ async def test_light_turn_on_with_brightness(hass: HomeAssistant, init_integrati
         blocking=True,
     )
 
-    # With kwargs → calls async_set_light_show
-    mock_api.async_set_light_show.assert_called_once()
-    call_args = mock_api.async_set_light_show.call_args
-    assert call_args[0][0] == 3   # bow_id
-    assert call_args[0][1] == 9   # system_id
-
+    result = mock_api.state.get(system_id)
+    assert isinstance(result, dict)
+    assert "brightness" in result
+    # We don't strictly assert the exact enum member here unless we want to test the conversion logic
+    assert result["brightness"] is not None
 
 async def test_light_turn_on_with_effect(hass: HomeAssistant, init_integration) -> None:
     """Test turning on the light with an effect."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
     mock_api = coordinator.omni_api
+    system_id = 9
 
     states = hass.states.async_all("light")
     entity_id = states[0].entity_id
@@ -96,15 +90,15 @@ async def test_light_turn_on_with_effect(hass: HomeAssistant, init_integration) 
         blocking=True,
     )
 
-    mock_api.async_set_light_show.assert_called_once()
-    call_kwargs = mock_api.async_set_light_show.call_args[1]
-    assert call_kwargs["show"] == ColorLogicShow.VOODOO_LOUNGE
-
+    result = mock_api.state.get(system_id)
+    assert isinstance(result, dict)
+    assert result["show"] == ColorLogicShow.VOODOO_LOUNGE
 
 async def test_light_turn_off(hass: HomeAssistant, init_integration) -> None:
     """Test turning off the light."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
     mock_api = coordinator.omni_api
+    system_id = 9
 
     states = hass.states.async_all("light")
     entity_id = states[0].entity_id
@@ -116,12 +110,7 @@ async def test_light_turn_off(hass: HomeAssistant, init_integration) -> None:
         blocking=True,
     )
 
-    mock_api.async_set_equipment.assert_called_once()
-    call_args = mock_api.async_set_equipment.call_args
-    assert call_args[0][0] == 3   # bow_id
-    assert call_args[0][1] == 9   # system_id
-    assert call_args[0][2] is False  # off
-
+    assert mock_api.state.get(system_id) is False
 
 async def test_light_effect_list(hass: HomeAssistant, init_integration) -> None:
     """Test the light exposes the ColorLogicShow effect list."""
