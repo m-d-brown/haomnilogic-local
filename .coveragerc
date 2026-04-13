@@ -1,0 +1,20 @@
+[run]
+source =
+    custom_components/omnilogic_local
+
+[report]
+show_missing = True
+precision = 2
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if __name__ == .__main__.:
+    raise AssertionError
+    raise NotImplementedError
+
+[paths]
+source =
+    custom_components/omnilogic_local
+    */custom_components/omnilogic_local
+    homeassistant/components/omnilogic_local

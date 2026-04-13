@@ -113,9 +113,22 @@ class OmniLogicFixtureGenerator:
         flt = ET.SubElement(self.current_bow_el, "Filter")
         ET.SubElement(flt, "System-Id").text = str(sid)
         ET.SubElement(flt, "Name").text = name
+        ET.SubElement(flt, "Shared-Type").text = "BOW_NO_EQUIPMENT_SHARED"
         ET.SubElement(flt, "Filter-Type").text = "FMT_VARIABLE_SPEED_PUMP"
+        ET.SubElement(flt, "Max-Pump-Speed").text = "100"
+        ET.SubElement(flt, "Min-Pump-Speed").text = "20"
+        ET.SubElement(flt, "Max-Pump-RPM").text = "3000"
+        ET.SubElement(flt, "Min-Pump-RPM").text = "600"
+        ET.SubElement(flt, "Priming-Enabled").text = "no"
+        ET.SubElement(flt, "Vsp-Low-Pump-Speed").text = "30"
+        ET.SubElement(flt, "Vsp-Medium-Pump-Speed").text = "50"
+        ET.SubElement(flt, "Vsp-High-Pump-Speed").text = "100"
         
-        # Telemetry
+        # Add to DMT
+        dev = ET.SubElement(self.dmt_devices, "Device")
+        ET.SubElement(dev, "System-Id").text = str(sid)
+        ET.SubElement(dev, "Node-Id").text = str(nid)
+        ET.SubElement(dev, "Omni-Type").text = "FILTER"
         ET.SubElement(
             self.telemetry_root, 
             "Filter", 
@@ -140,8 +153,16 @@ class OmniLogicFixtureGenerator:
         ET.SubElement(chlor, "Name").text = name
         ET.SubElement(chlor, "Enabled").text = "yes"
         ET.SubElement(chlor, "Timed-Percent").text = str(timed_percent)
+        ET.SubElement(chlor, "SuperChlor-Timeout").text = "24"
+        ET.SubElement(chlor, "ORP-Timeout").text = "0"
+        ET.SubElement(chlor, "Dispenser-Type").text = "SALT"
+        ET.SubElement(chlor, "Cell-Type").text = "T-CELL-15"
         
-        # Telemetry
+        # Add to DMT
+        dev = ET.SubElement(self.dmt_devices, "Device")
+        ET.SubElement(dev, "System-Id").text = str(sid)
+        ET.SubElement(dev, "Node-Id").text = str(nid)
+        ET.SubElement(dev, "Omni-Type").text = "CHLORINATOR"
         ET.SubElement(
             self.telemetry_root, 
             "Chlorinator", 
