@@ -1,9 +1,9 @@
 """Conftest for OmniLogic Local integration."""
 
-import sys
-import os
 import logging
+import sys
 from pathlib import Path
+
 from homeassistant.setup import async_setup_component
 
 # Inject our fakes directory into sys.path so it takes precedence over the real library
@@ -23,15 +23,27 @@ if FAKES_PATH in sys.path:
     sys.path.remove(FAKES_PATH)
 sys.path.insert(0, FAKES_PATH)
 
-from pyomnilogic_local.api import OmniLogicAPI
-from pyomnilogic_local.models.mspconfig import MSPConfig, MSPSystem
-from pyomnilogic_local.models.telemetry import Telemetry
+from collections.abc import Generator
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from homeassistant.const import CONF_IP_ADDRESS, CONF_NAME, CONF_PORT, CONF_SCAN_INTERVAL, CONF_TIMEOUT
 from homeassistant.core import HomeAssistant
+from pyomnilogic_local.api import OmniLogic
+from pyomnilogic_local.models.mspconfig import MSPConfig, MSPSystem
+from pyomnilogic_local.models.telemetry import Telemetry
+from pyomnilogic_local.omnitypes import (
+    ChlorinatorDispenserType,
+    ChlorinatorOperatingMode,
+    ColorLogicLightType,
+    CSADType,
+    FilterType,
+    SensorType,
+    SensorUnits,
+)
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from ..const import DOMAIN, KEY_COORDINATOR
+from ..const import DOMAIN
 
 # Import our mock factories using local relative path
 from .mock_models import (
@@ -44,70 +56,42 @@ from .mock_models import (
     create_mock_relay,
     create_mock_sensor,
 )
-from pyomnilogic_local.omnitypes import (
-    ChlorinatorDispenserType,
-    ChlorinatorOperatingMode,
-    ColorLogicLightType,
-    CSADType,
-    FilterType,
-    SensorType,
-    SensorUnits,
-)
-
-import pytest
-from unittest.mock import patch, AsyncMock
-from collections.abc import Generator
 
 _LOGGER = logging.getLogger(__name__)
+
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Enable custom integrations for all tests."""
     yield
 
+
 @pytest.fixture
 def mock_omni_data():
     """Build a high-fidelity mock dataset using our Shadow Library models."""
     # Backyard
     backyard = create_mock_backyard()
-    
-    air_temp = create_mock_sensor(
-        system_id=1, name="Air Temp", bow_id=None, type=SensorType.AIR_TEMP, units=SensorUnits.FAHRENHEIT
-    )
-    
-    water_temp = create_mock_sensor(
-        system_id=2, name="Water Temp", bow_id=3, type=SensorType.WATER_TEMP, units=SensorUnits.FAHRENHEIT
-    )
+
+    air_temp = create_mock_sensor(system_id=1, name="Air Temp", bow_id=None, type=SensorType.AIR_TEMP, units=SensorUnits.FAHRENHEIT)
+
+    water_temp = create_mock_sensor(system_id=2, name="Water Temp", bow_id=3, type=SensorType.WATER_TEMP, units=SensorUnits.FAHRENHEIT)
 
     pool = create_mock_bow(system_id=3, name="Pool")
-    
-    filter_pump = create_mock_filter(
-        system_id=6, name="Filter", bow_id=3, type=FilterType.VARIABLE_SPEED
-    )
-    
-    heater = create_mock_heater(system_id=7, name="Heater", bow_id=3)
-    
-    flow_sensor = create_mock_sensor(
-        system_id=4, name="Flow", bow_id=3, type=SensorType.FLOW
-    )
-    
-    pool_light = create_mock_light(
-        system_id=9, name="Light", bow_id=3, type=ColorLogicLightType.UCL
-    )
-    
-    chlorinator = create_mock_chlorinator(
-        system_id=10, name="Chlor", bow_id=3, 
-        dispenser_type=ChlorinatorDispenserType.SALT
-    )
-    chlorinator.telemetry.operating_mode = ChlorinatorOperatingMode.TIMED
-    
-    waterfall = create_mock_relay(
-        system_id=12, name="Waterfall", bow_id=3
-    )
 
-    csad = create_mock_sensor(
-        system_id=11, name="CSAD", bow_id=3, type=CSADType.ACID, units=SensorUnits.NO_UNITS
-    )
+    filter_pump = create_mock_filter(system_id=6, name="Filter", bow_id=3, type=FilterType.VARIABLE_SPEED)
+
+    heater = create_mock_heater(system_id=7, name="Heater", bow_id=3)
+
+    flow_sensor = create_mock_sensor(system_id=4, name="Flow", bow_id=3, type=SensorType.FLOW)
+
+    pool_light = create_mock_light(system_id=9, name="Light", bow_id=3, type=ColorLogicLightType.UCL)
+
+    chlorinator = create_mock_chlorinator(system_id=10, name="Chlor", bow_id=3, dispenser_type=ChlorinatorDispenserType.SALT)
+    chlorinator.telemetry.operating_mode = ChlorinatorOperatingMode.TIMED
+
+    waterfall = create_mock_relay(system_id=12, name="Waterfall", bow_id=3)
+
+    csad = create_mock_sensor(system_id=11, name="CSAD", bow_id=3, type=CSADType.ACID, units=SensorUnits.NO_UNITS)
 
     msp = MSPConfig(
         system=MSPSystem(vsp_speed_format="Percent", units="Standard"),
@@ -117,30 +101,34 @@ def mock_omni_data():
     backyard.msp_config.bow = [pool.msp_config]
     pool.msp_config.filter = [filter_pump.msp_config]
     pool.msp_config.heater = [heater.msp_config]
+    pool.msp_config.heater_equipment = [heater.msp_config]
     pool.msp_config.sensor = [water_temp.msp_config, flow_sensor.msp_config, csad.msp_config]
     pool.msp_config.chlorinator = [chlorinator.msp_config]
+    pool.msp_config.chlorinator_equipment = [chlorinator.msp_config]
     pool.msp_config.color_logic_light = [pool_light.msp_config]
     pool.msp_config.relay = [waterfall.msp_config]
+    pool.msp_config.csad = [csad.msp_config]
 
     telemetry = Telemetry()
     telemetry.backyard = backyard.telemetry
     telemetry.backyard.state = 1  # BackyardState.ON
     telemetry.backyard.air_temp = 75
-    
+
     telemetry.bow = [pool.telemetry]
     pool.telemetry.water_temp = 80
-    pool.telemetry.flow = 1 
-    
+    pool.telemetry.flow = 1
+
     telemetry.filter = [filter_pump.telemetry]
     telemetry.heater = [heater.telemetry]
     telemetry.chlorinator = [chlorinator.telemetry]
     telemetry.color_logic_light = [pool_light.telemetry]
     telemetry.relay = [waterfall.telemetry]
     telemetry.sensor = [air_temp.telemetry, water_temp.telemetry, flow_sensor.telemetry, csad.telemetry]
-    
+
     csad.telemetry.ph = 7.5
 
     return msp, telemetry
+
 
 @pytest.fixture
 async def init_integration(hass: HomeAssistant, mock_omni_data):
@@ -148,21 +136,23 @@ async def init_integration(hass: HomeAssistant, mock_omni_data):
     _LOGGER.info("DEBUG: init_integration fixture called")
 
     mock_msp_config, mock_telemetry = mock_omni_data
-    
-    # High-fidelity mock API that tracks state change in-memory
-    mock_api = OmniLogicAPI("127.0.0.1", 6103, 5.0)
-    
-    # Patch the real API class to use our fake
-    with patch("custom_components.omnilogic_local.config_flow.OmniLogicAPI", return_value=mock_api), \
-         patch("custom_components.omnilogic_local.OmniLogicAPI", return_value=mock_api), \
-         patch("custom_components.omnilogic_local.coordinator.MSPConfig.load_xml", return_value=mock_msp_config), \
-         patch("custom_components.omnilogic_local.coordinator.Telemetry.load_xml", return_value=mock_telemetry), \
-         patch("pyomnilogic_local.models.mspconfig.MSPConfig.load_xml", return_value=mock_msp_config), \
-         patch("pyomnilogic_local.models.telemetry.Telemetry.load_xml", return_value=mock_telemetry):
 
+    # High-fidelity mock API that tracks state change in-memory
+    mock_api = OmniLogic("127.0.0.1", 6103, 5.0)
+    mock_api.msp_config = mock_msp_config
+    mock_api.telemetry = mock_telemetry
+
+    # Patch the real API class to use our fake
+    with (
+        patch("custom_components.omnilogic_local.config_flow.OmniLogic", return_value=mock_api),
+        patch("custom_components.omnilogic_local.OmniLogic", return_value=mock_api),
+        patch("pyomnilogic_local.models.mspconfig.MSPConfig.load_xml", return_value=mock_msp_config),
+        patch("pyomnilogic_local.models.telemetry.Telemetry.load_xml", return_value=mock_telemetry),
+    ):
         # Force import to see any errors
         try:
             import custom_components.omnilogic_local
+
             _LOGGER.info(f"DEBUG: Successfully imported {custom_components.omnilogic_local}")
         except Exception as e:
             _LOGGER.error(f"DEBUG: Failed to import: {e}")
@@ -187,21 +177,17 @@ async def init_integration(hass: HomeAssistant, mock_omni_data):
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-        # Ensure the coordinator has the mocked config and telemetry objects after setup
+        # Ensure the coordinator has been set up successfully
         entry_id = entry.entry_id
         if DOMAIN in hass.data and entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry_id][KEY_COORDINATOR]
-            coordinator.msp_config = mock_msp_config
-            coordinator.telemetry = mock_telemetry
-            coordinator.msp_config_xml = "<mock_msp_config/>"
-            coordinator.telemetry_xml = "<mock_telemetry/>"
+            # No need to set msp_config/telemetry on coordinator anymore as it uses omni object
+            pass
 
         yield entry
+
 
 @pytest.fixture
 def mock_setup_entry() -> Generator[AsyncMock, None, None]:
     """Override async_setup_entry."""
-    with patch(
-        "custom_components.omnilogic_local.async_setup_entry", return_value=True
-    ) as mock_setup_entry:
+    with patch("custom_components.omnilogic_local.async_setup_entry", return_value=True) as mock_setup_entry:
         yield mock_setup_entry

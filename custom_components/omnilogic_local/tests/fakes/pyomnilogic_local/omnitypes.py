@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from enum import Enum, IntEnum
+
 from .util import PrettyEnum
+
 
 class MessageType(Enum):
     XML_ACK = 0
@@ -31,10 +34,12 @@ class MessageType(Enum):
     MSP_LEADMESSAGE = 1998
     MSP_BLOCKMESSAGE = 1999
 
+
 class ClientType(Enum):
     XML = 0
     SIMPLE = 1
     OMNI = 3
+
 
 class OmniType(str, Enum):
     BACKYARD = "Backyard"
@@ -59,6 +64,7 @@ class OmniType(str, Enum):
     VALVE_ACTUATOR = "ValveActuator"
     VIRT_HEATER = "VirtualHeater"
 
+
 class BackyardState(PrettyEnum):
     OFF = 0
     ON = 1
@@ -66,13 +72,16 @@ class BackyardState(PrettyEnum):
     CONFIG_MODE = 3
     TIMED_SERVICE_MODE = 4
 
+
 class BodyOfWaterState(PrettyEnum):
     NO_FLOW = 0
     FLOW = 1
 
+
 class BodyOfWaterType(str, PrettyEnum):
     POOL = "BOW_POOL"
     SPA = "BOW_SPA"
+
 
 class ChlorinatorOperatingMode(IntEnum):
     DISABLED = 0
@@ -80,9 +89,11 @@ class ChlorinatorOperatingMode(IntEnum):
     ORP = 2
     OFF = 3
 
+
 class ChlorinatorDispenserType(str, PrettyEnum):
     SALT = "SALT_DISPENSING"
     LIQUID = "LIQUID_DISPENSING"
+
 
 class ChlorinatorCellType(IntEnum, PrettyEnum):
     T3 = 0
@@ -90,6 +101,7 @@ class ChlorinatorCellType(IntEnum, PrettyEnum):
     T9 = 2
     T15 = 3
     LIQUID = 4
+
 
 class ColorLogicSpeed(PrettyEnum):
     ONE_SIXTEENTH = 0
@@ -102,12 +114,14 @@ class ColorLogicSpeed(PrettyEnum):
     EIGHT_TIMES = 7
     SIXTEEN_TIMES = 8
 
+
 class ColorLogicBrightness(PrettyEnum):
     TWENTY_PERCENT = 0
     FOURTY_PERCENT = 1
     SIXTY_PERCENT = 2
     EIGHTY_PERCENT = 3
     ONE_HUNDRED_PERCENT = 4
+
 
 class ColorLogicShow(PrettyEnum):
     VOODOO_LOUNGE = 0
@@ -138,6 +152,7 @@ class ColorLogicShow(PrettyEnum):
     WARM_WHITE = 25
     BRIGHT_YELLOW = 26
 
+
 class ColorLogicPowerState(PrettyEnum):
     OFF = 0
     POWERING_OFF = 1
@@ -146,18 +161,22 @@ class ColorLogicPowerState(PrettyEnum):
     ACTIVE = 6
     COOLDOWN = 7
 
+
 class ColorLogicLightType(str, PrettyEnum):
     UCL = "COLOR_LOGIC_UCL"
     FOUR_ZERO = "COLOR_LOGIC_4_0"
     TWO_FIVE = "COLOR_LOGIC_2_5"
 
+
 class CSADType(str, PrettyEnum):
     ACID = "ACID"
     CO2 = "CO2"
 
+
 class CSADStatus(PrettyEnum):
     NOT_DISPENSING = 0
     DISPENSING = 1
+
 
 class CSADMode(PrettyEnum):
     OFF = 0
@@ -165,6 +184,7 @@ class CSADMode(PrettyEnum):
     FORCE_ON = 2
     MONITORING = 3
     DISPENSING_OFF = 4
+
 
 class FilterState(PrettyEnum):
     OFF = 0
@@ -180,10 +200,12 @@ class FilterState(PrettyEnum):
     FILTER_FORCE_PRIMING = 10
     FILTER_WAITING_TURN_OFF = 11
 
+
 class FilterType(str, PrettyEnum):
     VARIABLE_SPEED = "FMT_VARIABLE_SPEED_PUMP"
     DUAL_SPEED = "FMT_DUAL_SPEED"
     SINGLE_SPEED = "FMT_SINGLE_SPEED"
+
 
 class FilterValvePosition(PrettyEnum):
     POOL_ONLY = 1
@@ -191,6 +213,7 @@ class FilterValvePosition(PrettyEnum):
     SPILLOVER = 3
     LOW_PRIO_HEAT = 4
     HIGH_PRIO_HEAT = 5
+
 
 class FilterWhyOn(PrettyEnum):
     OFF = 0
@@ -213,10 +236,12 @@ class FilterWhyOn(PrettyEnum):
     UNKNOWN_17 = 17
     UNKNOWN_18 = 18
 
+
 class HeaterState(PrettyEnum):
     OFF = 0
     ON = 1
     PAUSE = 2
+
 
 class HeaterType(str, PrettyEnum):
     GAS = "HTR_GAS"
@@ -226,19 +251,23 @@ class HeaterType(str, PrettyEnum):
     GEOTHERMAL = "HTR_GEOTHERMAL"
     SMART = "HTR_SMART"
 
+
 class HeaterMode(PrettyEnum):
     HEAT = 0
     COOL = 1
     AUTO = 2
 
+
 class PumpState(PrettyEnum):
     OFF = 0
     ON = 1
+
 
 class PumpType(str, PrettyEnum):
     SINGLE_SPEED = "PMP_SINGLE_SPEED"
     DUAL_SPEED = "PMP_DUAL_SPEED"
     VARIABLE_SPEED = "PMP_VARIABLE_SPEED_PUMP"
+
 
 class PumpFunction(str, PrettyEnum):
     PUMP = "PMP_PUMP"
@@ -255,6 +284,7 @@ class PumpFunction(str, PrettyEnum):
     CLEANER_SUCTION = "PMP_CLEANER_SUCTION"
     CLEANER_ROBOTIC = "PMP_CLEANER_ROBOTIC"
     CLEANER_IN_FLOOR = "PMP_CLEANER_IN_FLOOR"
+
 
 class RelayFunction(str, PrettyEnum):
     WATER_FEATURE = "RLY_WATER_FEATURE"
@@ -275,14 +305,17 @@ class RelayFunction(str, PrettyEnum):
     CLEANER_ROBOTIC = "RLY_CLEANER_ROBOTIC"
     CLEANER_IN_FLOOR = "RLY_CLEANER_IN_FLOOR"
 
+
 class RelayState(PrettyEnum):
     OFF = 0
     ON = 1
+
 
 class RelayType(str, PrettyEnum):
     VALVE_ACTUATOR = "RLY_VALVE_ACTUATOR"
     HIGH_VOLTAGE = "RLY_HIGH_VOLTAGE_RELAY"
     LOW_VOLTAGE = "RLY_LOW_VOLTAGE_RELAY"
+
 
 class SensorType(str, PrettyEnum):
     AIR_TEMP = "SENSOR_AIR_TEMP"
@@ -291,6 +324,7 @@ class SensorType(str, PrettyEnum):
     FLOW = "SENSOR_FLOW"
     ORP = "SENSOR_ORP"
     EXT_INPUT = "SENSOR_EXT_INPUT"
+
 
 class SensorUnits(str, PrettyEnum):
     FAHRENHEIT = "UNITS_FAHRENHEIT"
@@ -301,6 +335,21 @@ class SensorUnits(str, PrettyEnum):
     NO_UNITS = "UNITS_NO_UNITS"
     ACTIVE_INACTIVE = "UNITS_ACTIVE_INACTIVE"
 
+
 class ValveActuatorState(PrettyEnum):
     OFF = 0
     ON = 1
+
+
+class FilterSpeedPresets(IntEnum, PrettyEnum):
+    VSP_LOW = 1
+    VSP_MEDIUM = 2
+    VSP_HIGH = 3
+    VSP_MAX = 4
+
+
+class PumpSpeedPresets(IntEnum, PrettyEnum):
+    VSP_LOW = 1
+    VSP_MEDIUM = 2
+    VSP_HIGH = 3
+    VSP_MAX = 4

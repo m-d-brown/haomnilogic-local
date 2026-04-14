@@ -1,8 +1,9 @@
+"""Exceptions for the shadow library."""
+
+
 class OmniLogicException(Exception):
-    pass
+    """Base class for all OmniLogic exceptions."""
 
-class OmniTimeoutException(OmniLogicException):
-    pass
 
-class OmniParsingException(OmniLogicException):
-    pass
+class OmniEquipmentNotInitializedError(OmniLogicException):
+    """Error to indicate that equipment has not been initialized."""

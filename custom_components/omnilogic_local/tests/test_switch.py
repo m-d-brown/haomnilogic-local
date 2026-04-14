@@ -1,7 +1,6 @@
 """Test the OmniLogic Local switch platform."""
 
 import pytest
-
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.const import ATTR_ENTITY_ID, SERVICE_TURN_OFF, SERVICE_TURN_ON
 from homeassistant.core import HomeAssistant
@@ -9,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from custom_components.omnilogic_local.const import DOMAIN, KEY_COORDINATOR
 
 pytestmark = pytest.mark.asyncio
+
 
 async def test_switch_entities_created(hass: HomeAssistant, init_integration) -> None:
     """Test that switch entities are created for the fixture data."""
@@ -19,6 +19,7 @@ async def test_switch_entities_created(hass: HomeAssistant, init_integration) ->
     # 3. Waterfall (system_id=12)
     assert len(states) >= 3
 
+
 async def test_filter_switch_initial_state(hass: HomeAssistant, init_integration) -> None:
     """Test the filter switch initial state."""
     states = hass.states.async_all("switch")
@@ -26,10 +27,11 @@ async def test_filter_switch_initial_state(hass: HomeAssistant, init_integration
     filter_switch = next(s for s in states if s.attributes.get("omni_system_id") == 6)
     assert filter_switch.state == "off"
 
+
 async def test_filter_turn_on(hass: HomeAssistant, init_integration) -> None:
     """Test turning on the filter switch via API state."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
-    mock_api = coordinator.omni_api
+    mock_api = coordinator.omni
     system_id = 6
 
     states = hass.states.async_all("switch")
@@ -46,10 +48,11 @@ async def test_filter_turn_on(hass: HomeAssistant, init_integration) -> None:
     # State-based assertion: system_id 6 should have some speed (e.g. 50 or True)
     assert mock_api.state.get(system_id) is not None
 
+
 async def test_filter_turn_off(hass: HomeAssistant, init_integration) -> None:
     """Test turning off the filter switch."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
-    mock_api = coordinator.omni_api
+    mock_api = coordinator.omni
     system_id = 6
 
     states = hass.states.async_all("switch")
@@ -66,10 +69,11 @@ async def test_filter_turn_off(hass: HomeAssistant, init_integration) -> None:
     # State-based assertion: system_id 6 should be False (OFF)
     assert mock_api.state.get(system_id) is False
 
+
 async def test_chlorinator_turn_off(hass: HomeAssistant, init_integration) -> None:
     """Test turning off the chlorinator switch."""
     coordinator = hass.data[DOMAIN][init_integration.entry_id][KEY_COORDINATOR]
-    mock_api = coordinator.omni_api
+    mock_api = coordinator.omni
     bow_id = 3
 
     states = hass.states.async_all("switch")

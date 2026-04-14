@@ -50,7 +50,7 @@ async def test_heater_set_temp(hass, init_integration):
 
     # Verify state in Fake API
     coordinator = hass.data[DOMAIN][...][KEY_COORDINATOR]
-    assert coordinator.omni_api.state["set_point_7"] == 86
+    assert coordinator.omni.state["set_point_7"] == 86
 ```
 
 ## Maintenance
