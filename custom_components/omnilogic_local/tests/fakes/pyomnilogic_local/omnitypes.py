@@ -84,12 +84,12 @@ class ChlorinatorDispenserType(str, PrettyEnum):
     SALT = "SALT_DISPENSING"
     LIQUID = "LIQUID_DISPENSING"
 
-class ChlorinatorCellType(PrettyEnum):
-    T3 = "CELL_TYPE_T3"
-    T5 = "CELL_TYPE_T5"
-    T9 = "CELL_TYPE_T9"
-    T15 = "CELL_TYPE_T15"
-    LIQUID = "CELL_TYPE_LIQUID"
+class ChlorinatorCellType(IntEnum, PrettyEnum):
+    T3 = 0
+    T5 = 1
+    T9 = 2
+    T15 = 3
+    LIQUID = 4
 
 class ColorLogicSpeed(PrettyEnum):
     ONE_SIXTEENTH = 0

@@ -1,84 +1,65 @@
-# OmniLogic Local Testing Architecture
+# OmniLogic Local High-Fidelity Test Infrastructure
 
-This document describes the testing strategy and architecture for the `haomnilogic-local` integration.
+This document describes the modern testing strategy for the `haomnilogic-local` integration. We have moved away from brittle XML fixtures and `MagicMock` patching in favor of a **Shadow Library** architecture.
 
-## Testing Philosophy
+## The Shadow Library Concept
 
-We follow a tiered testing strategy to balance execution speed, reliability, and fidelity. Our primary goal is to isolate the Home Assistant integration from the underlying `pyomnilogic-local` library's complex XML and Pydantic parsing logic where possible.
+Our testing standard is based on a high-fidelity "Test Double" of the `pyomnilogic-local` library. This fake library lives within the repository at `custom_components/omnilogic_local/tests/fakes/pyomnilogic_local/`.
 
-### Tier 1: Model-Layer Mocking (Preferred)
+### How it Works
 
-- **Location**: `tests/test_light.py`, `tests/test_sensor.py`, etc.
-- **Fixture**: `init_integration` (with `mock_omni_data`)
-- **Key File**: [mock_models.py](file:///Users/mdbrown/important/others/haomnilogic-local/custom_components/omnilogic_local/tests/mock_models.py)
-- **Concept**: Instead of providing raw XML fixtures, we provide fully-attributed MagicMock objects that look like the `pyomnilogic-local` models (`MSPConfig`, `Telemetry`, etc.).
-- **Benefits**:
-    - **Isolation**: Changes in the library's XML schema or Pydantic validation don't break integration tests.
-    - **Control**: Easy to manipulate specific state values (e.g., `telemetry.brightness`) without hand-editing XML.
-    - **Performance**: Skips the expensive XML parsing step during test setup.
+1.  **Namespace Injection**: In `conftest.py`, we prepend the `fakes/` directory to `sys.path`. This ensures that any `import pyomnilogic_local` in the integration or test suite resolves to our local fake instead of the installed library.
+2.  **Model Parity**: Our fake models (`MSPConfig`, `Telemetry`, etc.) mirror the production library's API and data structures exactly, using Pydantic for validation.
+3.  **Stateful Fake API**: The `FakeOmniLogicAPI` maintains an internal state dictionary. When the integration calls a service (e.g., `async_set_heater`), the fake API updates its internal state. Tests then assert against this state directly.
 
-### Tier 2: Component Integration (Legacy)
+## Architecture
 
-- **Purpose**: Verifies that Home Assistant correctly translates OmniLogic state into entities.
-- **Mocking**: Patches the `OmniLogicAPI` at the library level.
-- **Note**: Most tests are migrating to Tier 1.
+### 1. High-Fidelity Models
+Located in `tests/fakes/pyomnilogic_local/models/`. These models define exactly how complex equipment like filters, heaters, and chlorinators are represented.
 
-### Tier 3: Protocol Integration (High Fidelity)
+### 2. Fake API
+The `OmniLogicAPI` class in `tests/fakes/pyomnilogic_local/api.py` handles all "network" calls. It is completely isolated from real UDP traffic, making tests fast and deterministic.
 
-- **Location**: `tests/test_coordinator.py`
-- **Fixture**: `omni_server`
-- **Mocking**: A real UDP mock server (`MockOmniLogicServer` in `conftest.py`) that implements the Hayward XML/UDP protocol.
-- **Purpose**: Verifies the end-to-end communication stack, including the `pyomnilogic-local` library's ability to handle fragmented UDP packets.
+### 3. Mock Models Factory
+[mock_models.py](file:///Users/mdbrown/important/others/haomnilogic-local/custom_components/omnilogic_local/tests/mock_models.py) provides a set of helper functions (`create_mock_filter`, `create_mock_light`, etc.) to easily build complex system scenarios for your tests.
 
----
+### 4. Integration Fixture
+The `init_integration` fixture in `conftest.py` orchestrates the setup of the entire Home Assistant environment, ensuring all entities are discovered and initialized using the shadow library data.
 
-## Mocking Architecture
+## Why This is Better
 
-### mock_models.py
-This module is the core of our modern testing strategy. It provides helper functions to create "well-behaved" mocks for any OmniLogic equipment:
-
-- `create_mock_light()`
-- `create_mock_sensor()`
-- `create_mock_backyard()`
-- etc.
-
-These helpers ensure that:
-1.  **Attributes are consistent**: All expected properties (like `system_id`, `name`, `omni_type`) are present.
-2.  **JSON Safety**: All attributes return serializable primitives (integers, strings, enums) or "sanitized" mocks that won't crash Home Assistant's state restoration logic.
-3.  **Discovery Compatibility**: The mocks correctly expose properties used by [utils.py](file:///Users/mdbrown/important/others/haomnilogic-local/custom_components/omnilogic_local/utils.py) for entity discovery.
-
-### conftest.py
-The `init_integration` fixture in `conftest.py` orchestrates the setup:
-1.  It collects all entities from a `mock_omni_data` dictionary.
-2.  It patches `MSPConfig.load_xml` and `Telemetry.load_xml` to return specific mock objects.
-3.  It patches the `OmniLogicCoordinator` to use the `mock_omni_data` for its internal entity catalog.
-
----
+-   **Robustness**: Tests are no longer broken by upstream library changes in XML parsing or internal logic.
+-   **Parity**: We test against the same object types (`MSPConfig`, `Telemetry`) used in production, ensuring contract fidelity.
+-   **Observability**: You can inspect `mock_api.state` to verify exactly what parameters were sent to the "system" during a service call.
+-   **Speed**: No XML parsing, no UDP network stack, no complicated `MagicMock` setups.
 
 ## Adding a New Test
 
-1.  **Define Equipment**: Add your equipment to the scenario in your test using `mock_models.py` helpers.
-2.  **Initialize**: Call `init_integration` which will pick up your mocked equipment.
-3.  **Assert**: Check `hass.states` for the expected entities and their attributes.
+1.  **Scene Setup**: Use `mock_models.py` helpers to define your equipment in a test.
+2.  **Discovery Verification**: Check `hass.states` to ensure your entity was created with the correct unique ID and attributes.
+3.  **Service Verification**: Call a Home Assistant service and assert that the `mock_api.state` was updated correctly.
 
 ```python
-async def test_my_new_sensor(hass, init_integration):
-    # The scenarios are defined in conftest.py or specifically for your test
-    state = hass.states.get("sensor.my_mock_sensor")
-    assert state.state == "80.0"
+async def test_heater_set_temp(hass, init_integration):
+    # Verify entity exists
+    state = hass.states.get("water_heater.pool_heater")
+    assert state.state == "on"
+
+    # Call service
+    await hass.services.async_call(WATER_HEATER_DOMAIN, ...)
+
+    # Verify state in Fake API
+    coordinator = hass.data[DOMAIN][...][KEY_COORDINATOR]
+    assert coordinator.omni_api.state["set_point_7"] == 86
 ```
 
 ## Maintenance
 
-> [!IMPORTANT]
-> **No more XML fixtures!**
-> Do not add new XML files to `tests/fixtures/`. Always prefer adding model helpers to `mock_models.py`.
+### Synchronizing with the Library
+When the production `pyomnilogic-local` library is updated (e.g., new attributes or equipment types), you **MUST** update the shadow library models in `fakes/` to maintain parity.
 
-> [!WARNING]
-> **JSON Serialization**
-> If you add a new attribute to an entity's `extra_state_attributes`, ensure that the corresponding mock in `mock_models.py` is sanitized using the `sanitize_mock()` utility to avoid `TypeError` during state restoration.
-
----
+### Contract Verification
+Use `test_library_contract.py` to verify that our shadow library's API matches the expectation of the integration.
 
 ## Running Tests
 

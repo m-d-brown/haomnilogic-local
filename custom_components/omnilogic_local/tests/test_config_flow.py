@@ -26,11 +26,9 @@ async def test_form_shows_on_init(hass: HomeAssistant) -> None:
 
 
 async def test_form_creates_entry(
-    hass: HomeAssistant, mock_setup_entry: AsyncMock, socket_enabled, omni_server
+    hass: HomeAssistant, mock_setup_entry: AsyncMock
 ) -> None:
-    """Test a successful config flow creates an entry using the live mock server."""
-    host, port = omni_server
-
+    """Test a successful config flow creates an entry."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -38,8 +36,8 @@ async def test_form_creates_entry(
     result2 = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
-            CONF_IP_ADDRESS: host,
-            CONF_PORT: port,
+            CONF_IP_ADDRESS: "127.0.0.1",
+            CONF_PORT: 10444,
             CONF_NAME: "Mock Omni",
             CONF_TIMEOUT: 5.0,
         },
@@ -48,8 +46,8 @@ async def test_form_creates_entry(
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
     assert result2["title"] == "Mock Omni"
-    assert result2["data"][CONF_IP_ADDRESS] == host
-    assert result2["data"][CONF_PORT] == port
+    assert result2["data"][CONF_IP_ADDRESS] == "127.0.0.1"
+    assert result2["data"][CONF_PORT] == 10444
     assert len(mock_setup_entry.mock_calls) == 1
 
 

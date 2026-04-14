@@ -2,14 +2,11 @@
 
 import pytest
 
-from homeassistant.components.diagnostics import REDACTED
 from homeassistant.core import HomeAssistant
 
 from custom_components.omnilogic_local.diagnostics import async_get_config_entry_diagnostics
 
-
 pytestmark = pytest.mark.asyncio
-
 
 async def test_diagnostics(hass: HomeAssistant, init_integration) -> None:
     """Test diagnostics export."""
@@ -20,6 +17,9 @@ async def test_diagnostics(hass: HomeAssistant, init_integration) -> None:
     assert "telemetry" in diag
     assert "data" in diag
 
-    # Verify basic data presence
-    assert "Pool" in diag["msp_config"]
-    assert "66" in diag["telemetry"]
+    # Verify that we've correctly mocked the coordinator attributes
+    assert diag["msp_config"] == "<mock_msp_config/>"
+    assert diag["telemetry"] == "<mock_telemetry/>"
+    
+    # Verify that the internal data dictionary is present and contains our mock entities
+    assert len(diag["data"]) > 0

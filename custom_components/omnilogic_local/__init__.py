@@ -99,7 +99,6 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         new[CONF_SCAN_INTERVAL] = DEFAULT_SCAN_INTERVAL
 
         hass.config_entries.async_update_entry(config_entry, data=new, version=2)
-
     if config_entry.version == 2:
         # Migrate device identifiers from (OmniType, int) to (DOMAIN, str)
         device_registry = dr.async_get(hass)
