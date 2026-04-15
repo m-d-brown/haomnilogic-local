@@ -97,17 +97,19 @@ def mock_omni_data():
         system=MSPSystem(vsp_speed_format="Percent", units="Standard"),
         backyard=backyard.msp_config,
     )
-    backyard.msp_config.sensor = [air_temp.msp_config]
-    backyard.msp_config.bow = [pool.msp_config]
-    pool.msp_config.filter = [filter_pump.msp_config]
-    pool.msp_config.heater = [heater.msp_config]
-    pool.msp_config.heater_equipment = [heater.msp_config]
-    pool.msp_config.sensor = [water_temp.msp_config, flow_sensor.msp_config, csad.msp_config]
-    pool.msp_config.chlorinator = [chlorinator.msp_config]
-    pool.msp_config.chlorinator_equipment = [chlorinator.msp_config]
-    pool.msp_config.color_logic_light = [pool_light.msp_config]
-    pool.msp_config.relay = [waterfall.msp_config]
-    pool.msp_config.csad = [csad.msp_config]
+    backyard.msp_config.sensor[(backyard.msp_config.system_id, air_temp.msp_config.system_id)] = air_temp.msp_config
+    backyard.msp_config.bow[(backyard.msp_config.system_id, pool.msp_config.system_id)] = pool.msp_config
+    pool.msp_config.filter[(pool.msp_config.system_id, filter_pump.msp_config.system_id)] = filter_pump.msp_config
+    pool.msp_config.heater[(pool.msp_config.system_id, heater.msp_config.system_id)] = heater.msp_config
+    pool.msp_config.heater_equipment[(pool.msp_config.system_id, heater.msp_config.system_id)] = heater.msp_config
+    pool.msp_config.sensor[(pool.msp_config.system_id, water_temp.msp_config.system_id)] = water_temp.msp_config
+    pool.msp_config.sensor[(pool.msp_config.system_id, flow_sensor.msp_config.system_id)] = flow_sensor.msp_config
+    pool.msp_config.sensor[(pool.msp_config.system_id, csad.msp_config.system_id)] = csad.msp_config
+    pool.msp_config.chlorinator[(pool.msp_config.system_id, chlorinator.msp_config.system_id)] = chlorinator.msp_config
+    pool.msp_config.chlorinator_equipment[(pool.msp_config.system_id, chlorinator.msp_config.system_id)] = chlorinator.msp_config
+    pool.msp_config.color_logic_light[(pool.msp_config.system_id, pool_light.msp_config.system_id)] = pool_light.msp_config
+    pool.msp_config.relay[(pool.msp_config.system_id, waterfall.msp_config.system_id)] = waterfall.msp_config
+    pool.msp_config.csad[(pool.msp_config.system_id, csad.msp_config.system_id)] = csad.msp_config
 
     telemetry = Telemetry()
     telemetry.backyard = backyard.telemetry

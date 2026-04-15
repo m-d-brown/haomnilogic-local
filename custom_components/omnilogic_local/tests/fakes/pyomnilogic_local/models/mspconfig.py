@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..omnitypes import OmniType
+from ..omnitypes import (
+    BodyOfWaterType,
+    CSADType,
+    FilterType,
+    HeaterType,
+    OmniType,
+    RelayType,
+    SensorType,
+)
+from ..utils import DiscoveryDict
 
 
 class OmniBase(BaseModel):
@@ -64,16 +73,18 @@ class MSPSystem(MSPBaseModel):
 
 class MSPSensor(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.SENSOR, alias="Type")
+    equip_type: Optional[SensorType] = Field(None, alias="Type")
     units: Optional[str] = Field(None, alias="Units")
 
 
 class MSPCSAD(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.CSAD, alias="Type")
+    equip_type: Optional[CSADType] = Field(None, alias="Type")
 
 
 class MSPFilter(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.FILTER, alias="Type")
-    filter_type: Optional[str] = Field(None, alias="Filter-Type")
+    filter_type: Optional[FilterType] = Field(None, alias="Type")
 
 
 class MSPHeater(MSPBaseModel):
@@ -82,10 +93,12 @@ class MSPHeater(MSPBaseModel):
 
 class MSPHeaterEquip(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.HEATER_EQUIP, alias="Type")
+    heater_type: Optional[HeaterType] = Field(None, alias="Type")
 
 
 class MSPRelay(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.RELAY, alias="Type")
+    relay_type: Optional[RelayType] = Field(None, alias="Type")
 
 
 class MSPPump(MSPBaseModel):
@@ -130,22 +143,23 @@ class MSPColorLogicLight(MSPBaseModel):
 
 class MSPBackyard(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.BACKYARD, alias="Type")
-    sensor: List[MSPSensor] = []
-    bow: List[MSPBoW] = []
-    csad: List[MSPCSAD] = []
+    sensor: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    bow: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    csad: DiscoveryDict = Field(default_factory=DiscoveryDict)
 
 
 class MSPBoW(MSPBaseModel):
     omni_type: OmniType = Field(OmniType.BOW, alias="Type")
-    filter: List[MSPFilter] = []
-    heater: List[MSPHeater] = []
-    heater_equipment: List[MSPHeaterEquip] = []
-    sensor: List[MSPSensor] = []
-    chlorinator: List[MSPChlorinator] = []
-    chlorinator_equipment: List[MSPChlorinatorEquip] = []
-    color_logic_light: List[MSPColorLogicLight] = []
-    relay: List[MSPRelay] = []
-    csad: List[MSPCSAD] = []
+    bow_type: Optional[BodyOfWaterType] = Field(None, alias="Type")
+    filter: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    heater: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    heater_equipment: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    sensor: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    chlorinator: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    chlorinator_equipment: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    color_logic_light: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    relay: DiscoveryDict = Field(default_factory=DiscoveryDict)
+    csad: DiscoveryDict = Field(default_factory=DiscoveryDict)
     supports_spillover: Optional[str] = Field("no", alias="Supports-Spillover")
 
 

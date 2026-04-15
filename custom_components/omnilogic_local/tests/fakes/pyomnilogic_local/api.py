@@ -1,21 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Optional
+from typing import Any, Optional
 
 from .models.mspconfig import MSPConfig, OmniBase
 from .models.telemetry import Telemetry
 from .omnitypes import ColorLogicBrightness, ColorLogicShow, ColorLogicSpeed, HeaterMode
+from .utils import DiscoveryDict
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class DiscoveryDict(dict[tuple[int, int], Any]):
-    """Custom dict that yields 3-tuples from items() (id1, id2, value)."""
-
-    def items(self) -> Generator[tuple[int, int, Any], None, None]:
-        for key, value in super().items():
-            yield (key[0], key[1], value)
 
 
 class OmniLogic:
